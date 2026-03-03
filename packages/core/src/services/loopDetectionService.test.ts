@@ -722,12 +722,10 @@ describe('LoopDetectionService', () => {
       vi.mocked(availability.snapshot).mockImplementation((model) => ({
         available: model === 'flash',
       }));
-      mockBaseLlmClient.generateJson = vi
-        .fn()
-        .mockResolvedValueOnce({
-          unproductive_state_confidence: 0.9,
-          unproductive_state_analysis: 'F',
-        });
+      mockBaseLlmClient.generateJson = vi.fn().mockResolvedValueOnce({
+        unproductive_state_confidence: 0.9,
+        unproductive_state_analysis: 'F',
+      });
       await advanceTurns(20);
       expect((await service.turnStarted(abortController.signal)).count).toBe(1);
       expect(mockBaseLlmClient.generateJson).toHaveBeenCalledTimes(1);
@@ -747,6 +745,16 @@ describe('LoopDetectionService', () => {
           c.parts!.some((p) => p.text?.includes('User prompt')),
       );
       expect(hasUserPrompt).toBe(true);
+
+      // Verify the task prompt itself is correct
+      const hasTaskPrompt = calledArg.contents.some(
+        (c) =>
+          c.role === 'user' &&
+          c.parts!.some((p) =>
+            p.text?.includes('Consider the original user request'),
+          ),
+      );
+      expect(hasTaskPrompt).toBe(true);
     });
 
     it('should not include user prompt in contents when not provided', async () => {
